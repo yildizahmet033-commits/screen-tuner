@@ -6,6 +6,14 @@ A small root module that adds a **screen saturation slider** and a **resolution 
 
 > **Status:** tested only on Xiaomi 12 Pro (zeus) with Evolution X 12 (Android 17) and BakaSU. Everything else is experimental.
 
+<p align="center">
+  <img src="screenshots/main.png" width="300" alt="Saturation slider and resolution list">
+  <img src="screenshots/confirm.png" width="300" alt="Confirmation dialog">
+</p>
+<p align="center"><em>Saturation and resolution | Reverts in 15 s unless confirmed</em></p>
+
+The page follows the phone language; the screenshots are in Turkish.
+
 ## Features
 
 - **Saturation 50–200 %** in 5 % steps, applied live while you drag, re-applied on every boot
@@ -62,6 +70,12 @@ Use at your own risk.
 Telefonuna **ekran doygunluğu sürgüsü** ve **çözünürlük seçici** ekleyen küçük bir root modülü. Root yöneticisinin içinde açılan bir sayfadan kullanılır. APK kurmaz, sistem dosyası değiştirmez, sen bir değer seçmeden hiçbir şeyi değiştirmez.
 
 > **Durum:** Yalnızca Xiaomi 12 Pro (zeus), Evolution X 12 (Android 17) ve BakaSU ile denendi. Diğer her şey deneyseldir.
+
+<p align="center">
+  <img src="screenshots/main.png" width="300" alt="Doygunluk sürgüsü ve çözünürlük listesi">
+  <img src="screenshots/confirm.png" width="300" alt="Onay penceresi">
+</p>
+<p align="center"><em>Doygunluk ve çözünürlük | Onaylanmazsa 15 saniyede geri döner</em></p>
 
 ## Özellikler
 
