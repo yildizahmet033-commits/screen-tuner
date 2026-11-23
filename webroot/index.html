@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Screen Tuner</title>
+<style>
+:root{--bg:#f4f5fa;--card:#fff;--fg:#1a1b21;--dim:#5c5f6b;--ac:#3556c8;--acfg:#fff;--line:#dcdee8;--err:#b3261e}
+@media(prefers-color-scheme:dark){:root{--bg:#111318;--card:#1d2027;--fg:#e4e5ec;--dim:#a3a7b5;--ac:#aebfff;--acfg:#14224f;--line:#343842;--err:#ffb4ab}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,sans-serif;padding:calc(20px + env(safe-area-inset-top)) 16px 32px}
+h1{font-size:24px;margin:8px 0 20px;font-weight:600}section{background:var(--card);border-radius:20px;padding:18px;margin-bottom:14px}
+h2{font-size:17px;margin:0;font-weight:600}.row{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+#satv{font-size:20px;font-weight:600;color:var(--ac);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;margin:18px 0 10px;accent-color:var(--ac);height:28px}
+.bar{height:26px;border-radius:13px;background:linear-gradient(90deg,#e53935,#fb8c00,#fdd835,#43a047,#1e88e5,#8e24aa)}
+p{color:var(--dim);font-size:14px;margin:10px 0 0}button{font:inherit;border:1px solid var(--line);background:none;color:var(--fg);border-radius:14px;padding:14px;width:100%;text-align:start;margin-top:10px}
+button.on{background:var(--ac);color:var(--acfg);border-color:var(--ac)}button.c{text-align:center}button small{display:block;opacity:.75}
+#msg{color:var(--err);min-height:1.4em}#ask{position:fixed;inset:0;background:#000a;display:none;align-items:flex-end;padding:16px}#ask.show{display:flex}#ask section{width:100%;margin:0}
+</style></head><body>
+<h1>Screen Tuner</h1>
+<section><div class="row"><h2 data-t="sat"></h2><span id="satv">–</span></div>
+<input id="sat" type="range" min="50" max="200" step="5" value="100" disabled><div class="bar"></div><p data-t="satd"></p></section>
+<section><h2 data-t="res"></h2><div id="list"></div><p data-t="resd"></p></section>
+<section><button id="reset" class="c" style="margin:0" data-t="reset"></button><p id="msg" role="status"></p></section>
+<div id="ask"><section><h2 data-t="keep"></h2><p><span data-t="rev"></span> <b id="cnt"></b></p>
+<button id="yes" class="c on" data-t="yes"></button><button id="no" class="c" data-t="no"></button></section></div>
+<script>
+const TR={sat:'Ekran doygunluğu',satd:'%100 normaldir. Seçimin her açılışta yeniden uygulanır.',res:'Görüntü çözünürlüğü',resd:'Yazı ve simge boyu korunur. 15 saniyede onaylamazsan eski hâline döner.',reset:'Her şeyi ilk hâline döndür',keep:'Bu çözünürlük kalsın mı?',rev:'Geri dönmesine kalan saniye:',yes:'Kalsın',no:'Geri al',native:'Ekranın kendi çözünürlüğü',dpi:'yoğunluk',fail:'Uygulanamadı',nok:'Bu sayfa KernelSU tabanlı yöneticide açılmalı.'};
+const EN={sat:'Screen saturation',satd:'100% is neutral. Your choice is re-applied on every boot.',res:'Display resolution',resd:'Text and icon size are kept. Reverts after 15 seconds unless confirmed.',reset:'Restore everything',keep:'Keep this resolution?',rev:'Seconds until it reverts:',yes:'Keep',no:'Revert',native:'Native panel resolution',dpi:'density',fail:'Could not apply',nok:'Open this page from a KernelSU-based manager.'};
+const tr=(navigator.language||'').toLowerCase().startsWith('tr'),T=tr?TR:EN,$=i=>document.getElementById(i);
+document.documentElement.lang=tr?'tr':'en';document.querySelectorAll('[data-t]').forEach(e=>e.textContent=T[e.dataset.t]);
+const CTL='/data/adb/modules/screen-tuner/ctl.sh';let seq=0;
+function run(a){return new Promise((ok,no)=>{if(typeof ksu==='undefined'){no(new Error(T.nok));return}
+ const cb='cb'+Date.now()+'_'+seq++;window[cb]=(c,o,e)=>{delete window[cb];c===0?ok(o.trim()):no(new Error((o||e||'').trim()||T.fail))};
+ try{ksu.exec('sh '+CTL+' '+a,'{}',cb)}catch(e){delete window[cb];no(e)}})}
+const err=e=>$('msg').textContent=e?T.fail+': '+e.message:'';
+const size=s=>s.split('x').map(Number);
+const pct=v=>tr?'%'+v:v+'%';
+async function load(){let s;try{s=JSON.parse(await run('status'))}catch(e){err(e);return}
+ $('sat').disabled=false;$('sat').value=s.sat;$('satv').textContent=pct(s.sat);
+ const [pw,ph]=size(s.phys),[cw]=size(s.cur),min=Math.min(pw,ph),box=$('list');box.textContent='';
+ [min,1440,1080,720].filter((v,i,a)=>v<=min&&a.indexOf(v)===i).forEach(v=>{
+  const w=Math.round(pw*v/min),h=Math.round(ph*v/min),d=Math.round(s.curDens*w/cw),b=document.createElement('button');
+  b.textContent=w+' × '+h;const m=document.createElement('small');m.textContent=(v===min?T.native+' · ':'')+T.dpi+' '+d;b.append(m);
+  const on=s.cur===w+'x'+h;b.className=on?'on':'';b.disabled=on||s.pending;b.onclick=()=>setRes(w,h,d);box.append(b)});
+ if(s.pending)ask()}
+let busy=false,next=null;
+async function pushSat(v){if(busy){next=v;return}busy=true;try{await run('sat '+v);err()}catch(e){err(e)}busy=false;if(next!==null){const n=next;next=null;pushSat(n)}}
+$('sat').oninput=e=>{$('satv').textContent=pct(e.target.value);pushSat(+e.target.value)};
+async function setRes(w,h,d){try{err();await run(`res ${w} ${h} ${d}`)}catch(e){err(e)}load()}
+let timer;function ask(){if(timer)return;let n=14;$('ask').classList.add('show');$('cnt').textContent=n;
+ timer=setInterval(()=>{$('cnt').textContent=--n;if(n<=0){close_();setTimeout(load,2500)}},1000)}
+function close_(){clearInterval(timer);timer=null;$('ask').classList.remove('show')}
+$('yes').onclick=async()=>{close_();try{await run('confirm')}catch(e){err(e)}load()};
+$('no').onclick=async()=>{close_();try{await run('revert')}catch(e){err(e)}load()};
+$('reset').onclick=async()=>{try{err();await run('reset')}catch(e){err(e)}load()};
+load();
+</script></body></html>

@@ -1,0 +1,7 @@
+id=screen-tuner
+name=Screen Tuner
+version=v1.0
+versionCode=10
+author=Ahmet033
+description=Screen saturation slider and resolution switcher (WebUI). / Ekran doygunluğu ve çözünürlük ayarı.
+updateJson=https://raw.githubusercontent.com/yildizahmet033-commits/screen-tuner/main/update.json
